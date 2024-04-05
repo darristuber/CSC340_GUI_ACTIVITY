@@ -1,5 +1,49 @@
 import tkinter as tk
 
+
+import tkinter as tk
+import mysql.connector
+from tkinter import messagebox
+
+# Function to fetch data from the database and display it
+# main.py
+import tkinter as tk
+from tkinter import messagebox
+from database import get_connection, close_connection
+
+def fetch_and_display_data():
+    # Fetch data from the database
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM Movies")
+        data = cursor.fetchall()
+        # Format the records into a string to display
+        output = "\n".join([f"Item ID: {row[0]}, Item Name: {row[1]}, Cost: {row[2]:.2f}" for row in data])
+        # Display the formatted string in a messagebox
+        messagebox.showinfo("Concessions Data", output)
+    except mysql.connector.Error as e:
+        messagebox.showerror("Database Error", str(e))
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            close_connection(conn)
+
+# Set up the main application window
+root = tk.Tk()
+root.title("Concessions Data Display")
+root.geometry("300x200")
+
+# Add a button to the window, which will call the data-fetching function
+button = tk.Button(root, text="Show Concessions Data", command=fetch_and_display_data)
+button.pack(pady=20)
+
+# Start the application
+root.mainloop()
+
+
+
+
 class MovieTicketApp(tk.Tk):
     def __init__(self):
         super().__init__()
