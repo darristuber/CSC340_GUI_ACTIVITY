@@ -1,89 +1,116 @@
 import tkinter as tk
-from tkinter import messagebox
-from PIL import Image, ImageTk
-import requests
-from io import BytesIO
-from database import get_connection, close_connection
+from tkinter import ttk
 
-class MovieTicketApp(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Movie Ticket Booking")
-        self.geometry("{0}x{1}+0+0".format(self.winfo_screenwidth(), self.winfo_screenheight()))  # Full screen
+# Initialize the main window
+root = tk.Tk()
+root.title("Movie Ticket Booking System")
+root.configure(bg='black')  # Set the background color to matte black
 
-        # Main Frame
-        self.main_frame = tk.Frame(self)
-        self.main_frame.pack(expand=True, fill=tk.BOTH)
+# To make the window full-screen
+root.state('zoomed')  # For Windows
 
-        # Movie Posters Frame
-        self.movie_posters_frame = tk.Frame(self.main_frame)
-        self.movie_posters_frame.pack(expand=True, fill=tk.BOTH)
+# Configure the style for the buttons
+style = ttk.Style()
+style.configure('TButton', background='white', foreground='black')
+# root.attributes('-zoomed', True)  # For Linux
+# root.wm_attributes('-fullscreen', 'true')  # For macOS
 
-        # Load movie poster images
-        self.load_movie_posters()
+# Define a function to add items to the receipt
+def add_to_receipt(item, quantity, item_type):
+    receipt_text.insert(tk.END, f"{quantity} x {item} ({item_type}) added\n")
+    receipt_text.configure(bg='black', fg='white')  # Set the text color to white
 
-        # Button to Get Tickets
-        self.ticket_button = tk.Button(self.main_frame, text="Get Tickets", command=self.show_ticket_screen)
-        self.ticket_button.pack()
 
-        # Button to Show Concessions Data
-        self.concessions_button = tk.Button(self.main_frame, text="Show Concessions Data", command=self.fetch_and_display_data)
-        self.concessions_button.pack()
 
-        # Bottom Tab for Concessions
-        self.concession_button = tk.Button(self, text="Concessions", command=self.show_concession_screen)
-        self.concession_button.pack(side=tk.BOTTOM)
+# Create the tab control
+tabControl = ttk.Notebook(root)
 
-        # Receipt in Bottom Right Corner
-        self.receipt_label = tk.Label(self, text="Receipt")
-        self.receipt_label.pack(side=tk.RIGHT, anchor=tk.SE)
 
-    def load_movie_posters(self):
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT PosterImage FROM Movies")
-            rows = cursor.fetchall()
-            for row in rows:
-                url = row[0]
-                response = requests.get(url)
-                image_data = BytesIO(response.content)
-                image = Image.open(image_data)
-                photo = ImageTk.PhotoImage(image)
-                label = tk.Label(self.movie_posters_frame, image=photo)
-                label.image = photo  # keep a reference!
-                label.pack(side=tk.LEFT, padx=20, pady=20)
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-        finally:
-            if conn and conn.is_connected():
-                cursor.close()
-                close_connection(conn)
+# Define the creation of the tab content for Movies, Foods, and Drinks
+def create_tab_content(tab, item_type, add_to_cart_callback):
 
-    def fetch_and_display_data(self):
-        """Fetch and display data from the database."""
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM Movies")
-            data = cursor.fetchall()
-            output = "\n".join([f"Item ID: {row[0]}, Item Name: {row[1]}, Cost: {row[2]:.2f}" for row in data])
-            messagebox.showinfo("Movies Data", output)
-        except Exception as e:
-            messagebox.showerror("Database Error", str(e))
-        finally:
-            if conn and conn.is_connected():
-                cursor.close()
-                close_connection(conn)
+    for i in range(4):  # Assuming you have 4 items per tab
+        tab.columnconfigure(i, weight=1)
+        # Banner
+        banner = tk.Label(tab, text=f"{item_type} Banner {i + 1}", bg="grey", width=20, height=10)
+        banner.grid(column=i, row=0, padx=10, pady=10, sticky='ew')
 
-    def show_ticket_screen(self):
-        # Code to open a new screen to enter customer information
-        pass
+        # Dropdown to select times for movies, quantity for food and drinks
+        if item_type == 'Movie':
+            times_var = tk.StringVar()
+            times_dropdown = ttk.Combobox(tab, textvariable=times_var, width=15)
+            times_dropdown['values'] = ('Time 1', 'Time 2', 'Time 3')  # Add actual times here
+            times_dropdown.grid(column=i, row=1, sticky='ew', padx=10)
+        else:
+            quantity_var = tk.IntVar(value=1)
+            quantity_entry = ttk.Entry(tab, textvariable=quantity_var, width=5)
+            quantity_entry.grid(column=i, row=1, sticky='ew', padx=10)
 
-    def show_concession_screen(self):
-        # Code to change the screen to concessions
-        pass
+        # Add to cart button
+        add_button = tk.Button(tab, text="Add to Cart", command=lambda i=i: add_to_cart_callback(i))
+        add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
 
-if __name__ == "__main__":
-    app = MovieTicketApp()
-    app.mainloop()
+def create_tab_content(tab, item_type, add_to_cart_callback):
+
+    for i in range(4):  # Assuming you have 4 items per tab
+        tab.columnconfigure(i, weight=1)
+        # Banner
+        banner = tk.Label(tab, text=f"{item_type} Banner {i + 1}", bg="grey", width=20, height=10)
+        banner.grid(column=i, row=0, padx=10, pady=10, sticky='ew')
+
+        # Dropdown to select times for movies, quantity for food and drinks
+        if item_type == 'Movie':
+            times_var = tk.StringVar()
+            times_dropdown = ttk.Combobox(tab, textvariable=times_var, width=15)
+            times_dropdown['values'] = ('Time 1', 'Time 2', 'Time 3')  # Add actual times here
+            times_dropdown.grid(column=i, row=1, sticky='ew', padx=10)
+        else:
+            quantity_var = tk.IntVar(value=1)
+            quantity_entry = ttk.Entry(tab, textvariable=quantity_var, width=5)
+            quantity_entry.grid(column=i, row=1, sticky='ew', padx=10)
+
+        # Add to cart button
+        add_button = tk.Button(tab, text="Add to Cart", command=lambda i=i: add_to_cart_callback(i))
+        add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
+
+
+# Add to cart callbacks
+def add_movie_to_cart(movie_index):
+    # Replace 'Movie Name' with your movie names
+    add_to_receipt(f"Movie Name {movie_index + 1}", 1, "Movie")
+
+
+def add_food_to_cart(food_index):
+    # Replace 'Food Name' with your food names
+    add_to_receipt(f"Food Name {food_index + 1}", 1, "Food")
+
+
+def add_drink_to_cart(drink_index):
+    # Replace 'Drink Name' with your drink names
+    add_to_receipt(f"Drink Name {drink_index + 1}", 1, "Drink")
+
+
+# Create the Movies, Foods, and Drinks tabs
+movies_tab = ttk.Frame(tabControl)
+create_tab_content(movies_tab, 'Movie', add_movie_to_cart)
+foods_tab = ttk.Frame(tabControl)
+create_tab_content(foods_tab, 'Food', add_food_to_cart)
+drinks_tab = ttk.Frame(tabControl)
+create_tab_content(drinks_tab, 'Drink', add_drink_to_cart)
+
+# Add the tabs to the tab control
+tabControl.add(movies_tab, text='Movies')
+tabControl.add(foods_tab, text='Foods')
+tabControl.add(drinks_tab, text='Drinks')
+
+# Pack the tab control into the main window
+tabControl.pack(expand=1, fill="both")
+
+# Create the Receipt section
+receipt_label = tk.Label(root, text="Receipt:")
+receipt_label.pack()
+receipt_text = tk.Text(root, height=10, width=50)
+receipt_text.pack()
+
+# Run the main window's event loop
+root.mainloop()
