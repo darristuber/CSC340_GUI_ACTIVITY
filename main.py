@@ -1,5 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
+import tkinter as tk
+from tkinter import ttk
+
 
 # Initialize the main window
 root = tk.Tk()
