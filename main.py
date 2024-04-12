@@ -4,6 +4,8 @@ from tkinter import messagebox
 from tkinter import ttk
 import mysql.connector
 from PIL import Image, ImageTk
+from tkinter import font as tkFont
+
 
 # Importing database functions
 from database import get_connection, close_connection
@@ -16,9 +18,16 @@ root.configure(bg='black')  # Set the background color to matte black
 # To make the window full-screen
 root.state('zoomed')  # For Windows
 
+
+# Define a larger font for all text in the application
+app_font = tkFont.Font(family='Helvetica', size=14, weight='bold')
+
 # Configure the style for the buttons
 style = ttk.Style()
 style.configure('TButton', background='white', foreground='black')
+
+
+
 
 # Create the tab control
 tabControl = ttk.Notebook(root)
@@ -66,7 +75,7 @@ def add_movie_to_cart(movie_index):
         age_popup = tk.Toplevel(root)
         age_popup.title("Enter Your Age")
 
-        age_label = tk.Label(age_popup, text="Enter your age:")
+        age_label = tk.Label(age_popup, text="Enter your age:", font=app_font)
         age_label.pack()
 
         age_entry = tk.Entry(age_popup)
@@ -174,7 +183,8 @@ def create_movies_tab_content(tab):
 
         # Create the "Add to Cart" button with the specified size
         add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
-                               command=lambda i=i: add_movie_to_cart(i))
+                               font=app_font, command=lambda i=i: add_movie_to_cart(i))
+
         add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
 
 # Function to create the tab content for Foods
@@ -190,6 +200,9 @@ def create_tab_content(tab, item_type, add_to_cart_callback):
         banner_label.image = banner_photo
         banner_label.grid(column=i, row=0, padx=10, pady=10)
 
+        button_width = 20  # Width in characters
+        button_height = 2  # Height in text lines
+
         label = tk.Label(tab, text=f"{food_name} - ${food_price}", fg="black", bg="white")
         label.grid(column=i, row=1, padx=10, pady=5, sticky="ew")
         # Times
@@ -197,7 +210,8 @@ def create_tab_content(tab, item_type, add_to_cart_callback):
         #times_dropdown = ttk.Combobox(tab, values=showings, width=15)
         #times_dropdown.grid(column=i, row=1, sticky='ew', padx=10)
         # Add to cart button
-        add_button = tk.Button(tab, text="Add to Cart", command=lambda i=i: add_food_to_cart(i))
+        add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
+                               font=app_font, command=lambda i=i: add_movie_to_cart(i))
         add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
 
 # Create the Movies, Foods tabs
@@ -220,10 +234,37 @@ tabControl.add(foods_tab, text='Foods')
 # Pack the tab control into the main window
 tabControl.pack(expand=1, fill="both")
 
+# Place the new buttons in the GUI for movie ratings
+ratings_frame = tk.Frame(root)
+ratings_frame.pack(fill='x', padx=5, pady=5)
+
+# Define the button for PG movies and its placement
+
+def list_pg_movies():
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        # Make sure to replace 'your_database_name' with the actual name of your database
+        cursor.execute("CREATE OR REPLACE VIEW pg_movies AS SELECT Name FROM MOVIE_THEATRE.Movies WHERE rating = 'PG'")
+        conn.commit()
+        cursor.execute("SELECT Name FROM pg_movies")
+        pg_movie_names = cursor.fetchall()
+        close_connection(conn)
+        # Display the movie names in a messagebox or in a designated area of your GUI
+        messagebox.showinfo("PG Movies", "\n".join(name for (name,) in pg_movie_names))
+    except mysql.connector.Error as err:
+        messagebox.showerror("Error", f"An error occurred: {err}")
+        close_connection(conn)
+
+
+pg_button = tk.Button(ratings_frame, text="List PG", command=list_pg_movies)
+pg_button.pack(side='left', padx=2, pady=2)
+
 # Create the Receipt section
 receipt_label = tk.Label(root, text="Receipt:")
 receipt_label.pack()
-receipt_text = tk.Text(root, height=10, width=70)
+receipt_text = tk.Text(root, height=10, width=70, font=app_font)
+
 receipt_text.pack()
 
 total_frame = tk.Frame(root, bg="black")
@@ -237,6 +278,8 @@ total_value.grid(row=0, column=1, sticky="w")
 
 # Configure total frame to center horizontally
 total_frame.pack_configure()
+
+
 
 # Function to update the total cost
 def update_total(cost):
