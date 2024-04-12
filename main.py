@@ -169,7 +169,12 @@ def create_movies_tab_content(tab):
         times_dropdown = ttk.Combobox(tab, values=showings, width=15)
         times_dropdown.grid(column=i, row=1, sticky='ew', padx=10)
         # Add to cart button
-        add_button = tk.Button(tab, text="Add to Cart", command=lambda i=i: add_movie_to_cart(i))
+        button_width = 20  # Width in characters
+        button_height = 2  # Height in text lines
+
+        # Create the "Add to Cart" button with the specified size
+        add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
+                               command=lambda i=i: add_movie_to_cart(i))
         add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
 
 # Function to create the tab content for Foods
@@ -200,6 +205,13 @@ movies_tab = ttk.Frame(tabControl)
 create_movies_tab_content(movies_tab)
 foods_tab = ttk.Frame(tabControl)
 create_tab_content(foods_tab, 'Concessions', add_food_to_cart)
+
+
+# Configure the grid columns to have the same weight
+number_of_columns = 5  # Adjust this to the actual number of columns you have
+for i in range(number_of_columns):
+    movies_tab.grid_columnconfigure(i, weight=1, uniform="group1")
+    foods_tab.grid_columnconfigure(i, weight=1, uniform="group1")
 
 # Add the tabs to the tab control
 tabControl.add(movies_tab, text='Movies')
