@@ -255,7 +255,7 @@ def list_pg_movies():
     except mysql.connector.Error as err:
         messagebox.showerror("Error", f"An error occurred: {err}")
         close_connection(conn)
-
+#####
 
 pg_button = tk.Button(ratings_frame, text="List PG", command=list_pg_movies)
 pg_button.pack(side='left', padx=2, pady=2)
