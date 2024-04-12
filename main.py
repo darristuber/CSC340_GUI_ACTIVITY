@@ -1,4 +1,6 @@
 import tkinter as tk
+import datetime
+from tkinter import messagebox
 from tkinter import ttk
 import mysql.connector
 from PIL import Image, ImageTk
@@ -86,7 +88,7 @@ def add_movie_to_cart(movie_index):
             # Check if the item is already in the receipt
             item_index = None
             for i, line in enumerate(receipt_text.get("1.0", tk.END).split("\n")):
-                if f"{movie_name} ({ticket_type}) - (${ticket_price})" in line:
+                if f"{movie_name} ({ticket_type}) - ${ticket_price}" in line:
                     item_index = i
                     break
 
@@ -112,6 +114,7 @@ def add_movie_to_cart(movie_index):
 
     else:
         print("Movie not found.")
+
 
 # Define the add_food_to_cart function
 def add_food_to_cart(food_index):
@@ -228,7 +231,50 @@ def update_total(cost):
     current_total = float(total_value.cget("text"))
     updated_total = current_total + float(cost)
     total_value.config(text=f"{updated_total:.2f}")
+def checkout():
+    # Query the database to get the highest existing OrderNum
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT MAX(OrderNum) FROM Orders")
+    max_order_num = cursor.fetchone()[0]
+    conn.commit()
+    close_connection(conn)
 
+    # If there are existing orders, increment the highest OrderNum by 1
+    if max_order_num is not None:
+        order_num = max_order_num + 1
+    else:
+        order_num = 1  # If no existing orders, start from 1
+
+    # Retrieve OrderItems from the receipt box
+    order_items = receipt_text.get("1.0", tk.END).strip()
+
+    # Retrieve OrderCost from the total cost label
+    order_cost = total_value.cget("text")
+
+    # Print the items that will be added to Orders
+    print("Order Items:")
+    print(order_items)
+    print("Order Cost:", order_cost)
+
+    # Insert data into the database
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO Orders (OrderNum, OrderItems, OrderCost) VALUES (%s, %s, %s)",
+                   (order_num, order_items, order_cost))
+    conn.commit()
+    close_connection(conn)
+
+    # Display success message
+    tk.messagebox.showinfo("Checkout", "Order placed successfully!")
+
+    # Clear receipt and total cost values
+    receipt_text.delete("1.0", tk.END)
+    total_value.config(text="0.00")
+
+# Create checkout button
+checkout_button = tk.Button(root, text="Checkout", command=checkout)
+checkout_button.pack(side="bottom", padx=10, pady=10)
 
 # Run the main window's event loop
 root.mainloop()
