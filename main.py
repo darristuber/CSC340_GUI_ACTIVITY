@@ -1,5 +1,5 @@
 import tkinter as tk
-import datetime
+
 from tkinter import messagebox
 from tkinter import ttk
 import mysql.connector
@@ -7,32 +7,25 @@ from PIL import Image, ImageTk
 from tkinter import font as tkFont
 
 
-# Importing database functions
+# database functions
 from database import get_connection, close_connection
 
-# Initialize the main window
+# the main window
 root = tk.Tk()
 root.title("Movie Ticket Booking System")
 root.configure(bg='black')  # Set the background color to matte black
 
-# To make the window full-screen
-root.state('zoomed')  # For Windows
-
-
-# Define a larger font for all text in the application
+# full-screen
+root.state('zoomed')
 app_font = tkFont.Font(family='Helvetica', size=14, weight='bold')
 
-# Configure the style for the buttons
+# style for the buttons
 style = ttk.Style()
 style.configure('TButton', background='white', foreground='black')
-
-
-
-
-# Create the tab control
+#  tab control
 tabControl = ttk.Notebook(root)
 
-# Function to fetch movie data from the database
+#fetch movie data from the database
 def fetch_movies():
     conn = get_connection()
     cursor = conn.cursor()
@@ -41,7 +34,7 @@ def fetch_movies():
     close_connection(conn)
     return movies
 
-# Function to fetch showings data from the database
+#fetch showings data from the database
 def fetch_showings(movie_id):
     conn = get_connection()
     cursor = conn.cursor()
@@ -58,9 +51,8 @@ def fetch_foods():
     close_connection(conn)
     return foods
 
-# Define the add_movie_to_cart function
+# add_movie_to_cart function
 def add_movie_to_cart(movie_index):
-    # Fetch movie details
     movie_id = movie_index + 1  # Assuming movie IDs start from 1
     conn = get_connection()
     cursor = conn.cursor()
@@ -70,62 +62,69 @@ def add_movie_to_cart(movie_index):
 
     if movie_details:
         movie_name, adult_price, kid_price = movie_details
+        showings = fetch_showings(movie_id)
 
-        # Create a popup window to prompt for age
-        age_popup = tk.Toplevel(root)
-        age_popup.title("Enter Your Age")
+        #a popup window to prompt for time and age
+        popup = tk.Toplevel(root)
+        popup.title("Select Time and Enter Age")
 
-        age_label = tk.Label(age_popup, text="Enter your age:", font=app_font)
+        # dropdown for selecting time
+        time_label = tk.Label(popup, text="Select time:", font=app_font)
+        time_label.pack()
+        times = [showing[0] for showing in showings]  # Assuming each showing is a tuple with the time as the first element
+        time_var = tk.StringVar(popup)
+        time_dropdown = ttk.Combobox(popup, textvariable=time_var, values=times, state="readonly")
+        time_dropdown.pack()
+
+        age_label = tk.Label(popup, text="Enter your age:", font=app_font)
         age_label.pack()
 
-        age_entry = tk.Entry(age_popup)
+        age_entry = tk.Entry(popup)
         age_entry.pack()
 
-        # Function to add movie to cart after entering age
         def add_to_cart_after_age():
+            selected_time = time_var.get()
+            if not selected_time:
+                messagebox.showerror("Error", "Please select a time before adding to cart.")
+                return
+
             age = int(age_entry.get())
-            age_popup.destroy()  # Close the age popup window
+            popup.destroy()  # close the popup window after collecting data
 
-            # Determine ticket price and type
-            if age >= 12:
-                ticket_price = adult_price
-                ticket_type = "Adult Ticket"
-            else:
-                ticket_price = kid_price
-                ticket_type = "Child Ticket"
+            # determine ticket price and type
+            ticket_price = adult_price if age >= 12 else kid_price
+            ticket_type = "Adult Ticket" if age >= 12 else "Child Ticket"
 
-            # Check if the item is already in the receipt
-            item_index = None
-            for i, line in enumerate(receipt_text.get("1.0", tk.END).split("\n")):
-                if f"{movie_name} ({ticket_type}) - ${ticket_price}" in line:
-                    item_index = i
-                    break
+            # logic to add item to receipt
+            receipt_update(movie_name, ticket_type, ticket_price)
 
-            if item_index is not None:
-                # Item already in receipt, increment its quantity
-                current_line = receipt_text.get(f"{item_index + 1}.0", f"{item_index + 1}.end")
-                quantity = int(current_line.split("x")[0].strip()) + 1
-                receipt_text.delete(f"{item_index + 1}.0", f"{item_index + 1}.end")
-                receipt_text.insert(f"{item_index + 1}.0", f"{quantity}x {movie_name} ({ticket_type}) - (${ticket_price})")
-            else:
-                # Item not in receipt, add it
-                if receipt_text.get("1.0", tk.END).strip():
-                    receipt_text.insert(tk.END, "\n")  # Add newline if it's not the first item
-                receipt_text.insert(tk.END, f"1x {movie_name} ({ticket_type}) - ${ticket_price}")
-
-            receipt_text.configure(bg='gray', fg='white')  # Set the text color to white
-
-            # Update total cost
-            update_total(ticket_price)
-
-        add_button = tk.Button(age_popup, text="Add to Cart", command=add_to_cart_after_age)
+        add_button = tk.Button(popup, text="Add to Cart", command=add_to_cart_after_age)
         add_button.pack()
 
     else:
         print("Movie not found.")
 
+def receipt_update(movie_name, ticket_type, ticket_price):
+    item_index = None
+    for i, line in enumerate(receipt_text.get("1.0", tk.END).split("\n")):
+        if f"{movie_name} ({ticket_type}) - ${ticket_price}" in line:
+            item_index = i
+            break
 
-# Define the add_food_to_cart function
+    if item_index is not None:
+        current_line = receipt_text.get(f"{item_index + 1}.0", f"{item_index + 1}.end")
+        quantity = int(current_line.split("x")[0].strip()) + 1
+        receipt_text.delete(f"{item_index + 1}.0", f"{item_index + 1}.end")
+        receipt_text.insert(f"{item_index + 1}.0", f"{quantity}x {movie_name} ({ticket_type}) - (${ticket_price})")
+    else:
+        if receipt_text.get("1.0", tk.END).strip():
+            receipt_text.insert(tk.END, "\n")  # Add newline if it's not the first item
+        receipt_text.insert(tk.END, f"1x {movie_name} ({ticket_type}) - ${ticket_price}")
+
+    receipt_text.configure(bg='gray', fg='white')
+    update_total(ticket_price)
+
+# add_food_to_cart function
 def add_food_to_cart(food_index):
     conn = get_connection()
     cursor = conn.cursor()
@@ -136,7 +135,7 @@ def add_food_to_cart(food_index):
     if food_details:
         ItemID, ItemName, Cost = food_details
 
-        # Check if the item is already in the receipt
+        # if the item is already in the receipt
         item_index = None
         for i, line in enumerate(receipt_text.get("1.0", tk.END).split("\n")):
             if f"{ItemName} - ${Cost}" in line:
@@ -144,7 +143,7 @@ def add_food_to_cart(food_index):
                 break
 
         if item_index is not None:
-            # Item already in receipt, increment its quantity
+            # item already in receipt, increment its quantity
             current_line = receipt_text.get(f"{item_index + 1}.0", f"{item_index + 1}.end")
             quantity = int(current_line.split("x")[0].strip()) + 1
             receipt_text.delete(f"{item_index + 1}.0", f"{item_index + 1}.end")
@@ -154,14 +153,14 @@ def add_food_to_cart(food_index):
             if receipt_text.get("1.0", tk.END).strip():
                 receipt_text.insert(tk.END, "\n")  # Add newline if it's not the first item
             receipt_text.insert(tk.END, f"1x {ItemName} - ${Cost}")
-        # Update total cost
+        # update total cost
         update_total(Cost)
 
     else:
         print("Food not found.")
 
 
-# Function to create the tab content for Movies
+# create the tab content for Movies
 def create_movies_tab_content(tab):
     movies = fetch_movies()
     for i, movie in enumerate(movies):
@@ -173,21 +172,18 @@ def create_movies_tab_content(tab):
         banner_label = tk.Label(tab, image=banner_photo, width=200, height=300)
         banner_label.image = banner_photo
         banner_label.grid(column=i, row=0, padx=10, pady=10)
-        # Times
-        showings = fetch_showings(movie_id)
-        times_dropdown = ttk.Combobox(tab, values=showings, width=15)
-        times_dropdown.grid(column=i, row=1, sticky='ew', padx=10)
-        # Add to cart button
+
+        # add to cart button
         button_width = 20  # Width in characters
         button_height = 2  # Height in text lines
 
-        # Create the "Add to Cart" button with the specified size
+        # create the add to to cart
         add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
                                font=app_font, command=lambda i=i: add_movie_to_cart(i))
 
         add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
 
-# Function to create the tab content for Foods
+# create the tab content for Foods
 def create_tab_content(tab, item_type, add_to_cart_callback):
     foods = fetch_foods()
     for i, food in enumerate(foods):
@@ -205,27 +201,28 @@ def create_tab_content(tab, item_type, add_to_cart_callback):
 
         label = tk.Label(tab, text=f"{food_name} - ${food_price}", fg="black", bg="white")
         label.grid(column=i, row=1, padx=10, pady=5, sticky="ew")
-        # Times
-        #showings = fetch_showings(movie_id)
-        #times_dropdown = ttk.Combobox(tab, values=showings, width=15)
-        #times_dropdown.grid(column=i, row=1, sticky='ew', padx=10)
-        # Add to cart button
+
         add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
                                font=app_font, command=lambda i=i: add_movie_to_cart(i))
         add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
 
-# Create the Movies, Foods tabs
+
+# create the Movies, Foods tabs
 movies_tab = ttk.Frame(tabControl)
 create_movies_tab_content(movies_tab)
 foods_tab = ttk.Frame(tabControl)
 create_tab_content(foods_tab, 'Concessions', add_food_to_cart)
 
 
-# Configure the grid columns to have the same weight
+# grid columns to have the same weight
 number_of_columns = 5  # Adjust this to the actual number of columns you have
 for i in range(number_of_columns):
     movies_tab.grid_columnconfigure(i, weight=1, uniform="group1")
     foods_tab.grid_columnconfigure(i, weight=1, uniform="group1")
+
+
+
+
 
 # Add the tabs to the tab control
 tabControl.add(movies_tab, text='Movies')
