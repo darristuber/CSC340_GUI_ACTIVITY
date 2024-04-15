@@ -203,7 +203,7 @@ def create_tab_content(tab, item_type, add_to_cart_callback):
         label.grid(column=i, row=1, padx=10, pady=5, sticky="ew")
 
         add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
-                               font=app_font, command=lambda i=i: add_movie_to_cart(i))
+                               font=app_font, command=lambda i=i: add_food_to_cart(i))
         add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
 
 
