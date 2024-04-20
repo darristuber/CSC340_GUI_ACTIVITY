@@ -186,25 +186,35 @@ def create_movies_tab_content(tab):
     for i, movie in enumerate(movies):
         movie_id = movie.get('movieID')  # Get movieID field
         movie_name = movie.get('Name')  # Get Name field
+        movie_rating = movie.get('rating')  # Get Rating field
 
-
+        # Load the banner image
         banner_path = f"{movie_id}.jpeg"
         banner_image = Image.open(banner_path)
         banner_photo = ImageTk.PhotoImage(banner_image)
-        banner_label = tk.Label(tab, image=banner_photo, width=200, height=300)
-        banner_label.image = banner_photo
+        banner_label = tk.Label(tab, image=banner_photo, width=350, height=350)
+        banner_label.image = banner_photo  # keep a reference!
         banner_label.grid(column=i, row=0, padx=10, pady=10)
 
-        button_width = 20
-        button_height = 2
+        # Create and place the movie name label below the banner image
+        movie_name_label = tk.Label(tab, text=movie_name, font=app_font, bg='white')
+        movie_name_label.grid(column=i, row=1, padx=10, pady=2)
 
-        def add_movie_to_cart_wrapper(movie_id=movie_id):  # helper function to capture the current value of movie_id
+        # Create and place the movie rating label below the movie name
+        movie_rating_label = tk.Label(tab, text=f"Rating: {movie_rating}", font=app_font, bg='white')
+        movie_rating_label.grid(column=i, row=2, padx=10, pady=2)
+
+        button_width = 20
+        button_height = 3  # Height is typically set in text lines, not pixels.
+
+        # Wrap the function call to include the movie ID
+        def add_movie_to_cart_wrapper(movie_id=movie_id):
             add_movie_to_cart(movie_id)
 
+        # Create and place the add to cart button below the movie rating label
         add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
                                font=app_font, command=add_movie_to_cart_wrapper)
-        add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
-
+        add_button.grid(column=i, row=3, pady=5, sticky='ew', padx=10)
 
 def create_tab_content(tab, item_type, add_to_cart_callback):
     foods = fetch_foods()
@@ -213,7 +223,7 @@ def create_tab_content(tab, item_type, add_to_cart_callback):
         banner_path = f"{food_name}.jpeg"
         banner_image = Image.open(banner_path)
         banner_photo = ImageTk.PhotoImage(banner_image)
-        banner_label = tk.Label(tab, image=banner_photo, width=200, height=200)
+        banner_label = tk.Label(tab, image=banner_photo, width=200, height=350)
         banner_label.image = banner_photo
         banner_label.grid(column=i, row=0, padx=10, pady=10)
 
@@ -226,7 +236,7 @@ def create_tab_content(tab, item_type, add_to_cart_callback):
 
 def create_add_to_cart_button(tab, food_id, food_name, food_price, add_to_cart_callback):
     button_width = 20
-    button_height = 2
+    button_height = 4
 
     def add_to_cart_wrapper():
         add_to_cart_callback(food_id)
@@ -247,11 +257,11 @@ for i in range(number_of_columns):
     movies_tab.grid_columnconfigure(i, weight=1, uniform="group1")
     foods_tab.grid_columnconfigure(i, weight=1, uniform="group1")
 
-# add the tabs to the tab control
+##add the tabs to the tab control
 tabControl.add(movies_tab, text='Movies')
 tabControl.add(foods_tab, text='Foods')
 
-# pack the tab control into the main window
+#pack the tab control into the main window
 tabControl.pack(expand=1, fill="both")
 
 # Place the new buttons in the GUI for movie ratings
@@ -259,7 +269,12 @@ ratings_frame = tk.Frame(root)
 ratings_frame.pack(fill='x', padx=5, pady=5)
 
 
-# Define the button for PG movies and its placement
+# Make sure the column configuration allows for the widget to stretch or shrink as needed
+ratings_frame.grid_columnconfigure(0, weight=1)
+
+
+
+#the button for PG movies and its placement
 
 def list_pg_movies():
     try:
@@ -274,8 +289,14 @@ def list_pg_movies():
 
 #####
 
-pg_button = tk.Button(ratings_frame, text="List PG", command=list_pg_movies)
-pg_button.pack(side='left', padx=2, pady=2)
+
+pg_button = tk.Button(ratings_frame, text="List PG", command=list_pg_movies, width=20)
+pg_button.pack(side='top', pady=5)
+
+
+
+#add_button = create_add_to_cart_button(tab, food_id, food_name, food_price, add_to_cart_callback)
+#add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
 
 # Create the Receipt section
 receipt_label = tk.Label(root, text="Receipt:")
@@ -337,8 +358,13 @@ def checkout():
         print(f"An error occurred: {e}")
 
 
-checkout_button = tk.Button(root, text="Checkout", command=checkout)
-checkout_button.pack(side="bottom", padx=10, pady=10)
+# Place the checkout button in the top right of the total_frame
+checkout_button = tk.Button(total_frame, text="Checkout", command=checkout, font=app_font)
+checkout_button.grid(row=0, column=2, sticky='ne', padx=10, pady=10)
+
+# Configure the grid layout to push everything to the left
+total_frame.grid_columnconfigure(0, weight=1)
+# This will make the column 0 take up all the extra space, pushing column 2 to the right
 
 root.mainloop()
 
