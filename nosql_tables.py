@@ -1,9 +1,7 @@
 from pymongo import MongoClient
 
-
 client = MongoClient('localhost', 27017)
 db = client['mongo_movies']
-
 if 'concessions' not in db.list_collection_names():
     concessions_data = [
      {
@@ -160,9 +158,9 @@ if 'showings' not in db.list_collection_names():
        "time": "21:00:00"
      }
     ]
-    showings_collection = db['movies']
-# showings_collection.insert_many(showings_data)
-print(showings_collection.find_one())
+    showings_collection = db['showings']
+    showings_collection.insert_many(showings_data)
+    print(showings_collection.find_one())
 client.close()
 '''
 
@@ -178,5 +176,4 @@ db.drop_collection('showings')
 
 # Close the connection
 client.close()
-
 '''

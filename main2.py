@@ -7,46 +7,49 @@ from PIL import Image, ImageTk
 from tkinter import font as tkFont
 from pymongo import MongoClient
 
-
-#link our individual sql databases
+# link our individual sql databases
 client = MongoClient('localhost', 27017)
 db = client['mongo_movies']
-#main window
+# main window
 root = tk.Tk()
 root.title("Movie Ticket Booking System")
 root.configure(bg='black')  # Set the background color to matte black
 root.state('zoomed')
 app_font = tkFont.Font(family='Helvetica', size=14, weight='bold')
 
-#formatting for buttons
+# formatting for buttons
 style = ttk.Style()
 style.configure('TButton', background='white', foreground='black')
 
-#fix tabs
+# fix tabs
 tabControl = ttk.Notebook(root)
 
-#get movies information from database
+
+# get movies information from database
 def fetch_movies():
-    movies_collection = db['movies']
-    movies = list(movies_collection.find())
-    print(movies)
-    return movies
-
-#same with showings database
-def fetch_showings(movie_id):
     try:
-        showings_collection = db['showings']
-
-        #get showings of the given movie_id from mongo
-        showings = list(showings_collection.find({'movie_id': movie_id}, {'_id': 0, 'time': 1}))
-
-        #return time field as list
-        showings = [showing['time'] for showing in showings]
-        return showings
+        movies_collection = db['movies']
+        movies = list(movies_collection.find())
+        return movies
     except Exception as e:
         print(f"An error occurred: {e}")
 
-#now get food data
+
+# same with showings database
+def fetch_showings(movie_id):
+    try:
+        showings_collection = db['showings']
+        showings = list(showings_collection.find())
+        times = []
+        for row in showings:
+            if row['movieID'] == movie_id:
+                times.append(str(row['time']))
+        return times
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+# now get food data
 def fetch_foods():
     try:
         concessions_collection = db['concessions']
@@ -56,29 +59,33 @@ def fetch_foods():
     except Exception as e:
         print(f"An error occurred: {e}")
 
+
 def add_movie_to_cart(movie_index):
-    movie_id = movie_index + 1
-
+    movie_id = movie_index
     try:
-        # Connect to MongoDB
-        movies_collection = db['movies']
+        # Fetch movies
+        movies = fetch_movies()
 
-        # Query MongoDB for movie details
-        movie_details = movies_collection.find_one({'_id': movie_id})
+        # Find the movie with the given movie_id
+        selected_movie = None
+        for movie in movies:
+            if movie['movieID'] == movie_id:
+                selected_movie = movie
+                break
 
-        if movie_details:
-            movie_name = movie_details['Name']
-            adult_price = movie_details['ACost']
-            kid_price = movie_details['KCost']
+        if selected_movie:
+            movie_name = selected_movie['Name']
+            adult_price = selected_movie['ACost']
+            kid_price = selected_movie['KCost']
             showings = fetch_showings(movie_id)
 
             popup = tk.Toplevel(root)
             popup.title("Select Time and Enter Age")
 
-            #time selection dropdown
+            # time selection dropdown
             time_label = tk.Label(popup, text="Select time:", font=app_font)
             time_label.pack()
-            times = [showing['time'] for showing in showings]
+            times = showings
             time_var = tk.StringVar(popup)
             time_dropdown = ttk.Combobox(popup, textvariable=time_var, values=times, state="readonly")
             time_dropdown.pack()
@@ -96,9 +103,9 @@ def add_movie_to_cart(movie_index):
                     return
 
                 age = int(age_entry.get())
-                popup.destroy()  #close the popup window
+                popup.destroy()  # close the popup window
 
-                #choose ticket type
+                # choose ticket type
                 ticket_price = adult_price if age >= 12 else kid_price
                 ticket_type = "Adult Ticket" if age >= 12 else "Child Ticket"
 
@@ -114,10 +121,11 @@ def add_movie_to_cart(movie_index):
     except Exception as e:
         print(f"An error occurred: {e}")
 
+
 def receipt_update(movie_name, ticket_type, ticket_price):
     item_index = None
     for i, line in enumerate(receipt_text.get("1.0", tk.END).split("\n")):
-        if f"{movie_name} ({ticket_type}) - ${ticket_price}" in line:
+        if f"{movie_name} {ticket_type} " in line:
             item_index = i
             break
 
@@ -125,11 +133,12 @@ def receipt_update(movie_name, ticket_type, ticket_price):
         current_line = receipt_text.get(f"{item_index + 1}.0", f"{item_index + 1}.end")
         quantity = int(current_line.split("x")[0].strip()) + 1
         receipt_text.delete(f"{item_index + 1}.0", f"{item_index + 1}.end")
-        receipt_text.insert(f"{item_index + 1}.0", f"{quantity}x {movie_name} ({ticket_type}) - (${ticket_price})")
+        new_cost = int(quantity*float(ticket_price))
+        receipt_text.insert(f"{item_index + 1}.0", f"{quantity}x {movie_name} {ticket_type} - ${new_cost}")
     else:
         if receipt_text.get("1.0", tk.END).strip():
             receipt_text.insert(tk.END, "\n")  # Add newline if it's not the first item
-        receipt_text.insert(tk.END, f"1x {movie_name} ({ticket_type}) - ${ticket_price}")
+        receipt_text.insert(tk.END, f"1x {movie_name} {ticket_type} - ${ticket_price}")
 
     receipt_text.configure(bg='gray', fg='white')
     update_total(ticket_price)
@@ -137,51 +146,48 @@ def receipt_update(movie_name, ticket_type, ticket_price):
 
 def add_food_to_cart(food_index):
     try:
-        concessions_collection = db['concessions']
-        food_details = concessions_collection.find_one({'_id': food_index + 1})
+        foods = fetch_foods()
+        for i, food in enumerate(foods):
+            item_name = food['ItemName']
+            Cost = food['Cost']
+            item_id = food['ItemID']
+            if item_id == food_index:
+                item_found = False
+                for line in receipt_text.get("1.0", tk.END).split("\n"):
+                    if f"{item_name} " in line:
+                        item_found = True
+                        #increment quantity if already in receipt
+                        lines = receipt_text.get("1.0", tk.END).split("\n")
+                        for j, line in enumerate(lines):
+                            if f"{item_name} " in line:
+                                quantity = int(line.split("x")[0].strip()) + 1
+                                new_cost = int(quantity*float(Cost))
+                                lines[j] = f"{quantity}x {item_name} - ${new_cost}"
+                                break
 
-        if food_details:
-            ItemName = food_details['ItemName']
-            Cost = food_details['Cost']
-
-            #if the item is already in the receipt
-            item_found = False
-            for line in receipt_text.get("1.0", tk.END).split("\n"):
-                if f"{ItemName} - ${Cost}" in line:
-                    item_found = True
-                    break
-
-            if item_found:
-                #if item is in receipt, increment quantity
-                lines = receipt_text.get("1.0", tk.END).split("\n")
-                for i, line in enumerate(lines):
-                    if f"{ItemName} - ${Cost}" in line:
-                        quantity = int(line.split("x")[0].strip()) + 1
-                        lines[i] = f"{quantity}x {ItemName} - ${Cost}"
-                        break
-
-                receipt_text.delete("1.0", tk.END)
-                for line in lines:
-                    receipt_text.insert(tk.END, line + "\n")
-            else:
-                #add new item
-                if receipt_text.get("1.0", tk.END).strip():
-                    receipt_text.insert(tk.END, "\n")
-                receipt_text.insert(tk.END, f"1x {ItemName} - ${Cost}")
-
-            update_total(Cost)
+                        receipt_text.delete("1.0", tk.END)
+                        for line in lines:
+                            receipt_text.insert(tk.END, line + "\n")
+                        break  #exit once updated
+                else:
+                    #no item, add new line
+                    if receipt_text.get("1.0", tk.END).strip():
+                        receipt_text.insert(tk.END, "\n")
+                    receipt_text.insert(tk.END, f"1x {item_name} - ${Cost}")
+                update_total(Cost)
+                break  #exit
         else:
             print("Food not found.")
-
-
     except Exception as e:
         print(f"An error occurred: {e}")
-
 
 def create_movies_tab_content(tab):
     movies = fetch_movies()
     for i, movie in enumerate(movies):
-        movie_id, movie_name = movie['movieID'], movie['Name']
+        movie_id = movie.get('movieID')  # Get movieID field
+        movie_name = movie.get('Name')  # Get Name field
+
+
         banner_path = f"{movie_id}.jpeg"
         banner_image = Image.open(banner_path)
         banner_photo = ImageTk.PhotoImage(banner_image)
@@ -189,12 +195,14 @@ def create_movies_tab_content(tab):
         banner_label.image = banner_photo
         banner_label.grid(column=i, row=0, padx=10, pady=10)
 
-        # Add to cart button
         button_width = 20
         button_height = 2
 
+        def add_movie_to_cart_wrapper(movie_id=movie_id):  # helper function to capture the current value of movie_id
+            add_movie_to_cart(movie_id)
+
         add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
-                               font=app_font, command=lambda i=i: add_movie_to_cart(movie_id))
+                               font=app_font, command=add_movie_to_cart_wrapper)
         add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
 
 
@@ -209,43 +217,47 @@ def create_tab_content(tab, item_type, add_to_cart_callback):
         banner_label.image = banner_photo
         banner_label.grid(column=i, row=0, padx=10, pady=10)
 
-        button_width = 20
-        button_height = 2
-
         label = tk.Label(tab, text=f"{food_name} - ${food_price}", fg="black", bg="white")
         label.grid(column=i, row=1, padx=10, pady=5, sticky="ew")
 
-        add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
-                               font=app_font, command=lambda i=i: add_to_cart_callback(food_id))
+        add_button = create_add_to_cart_button(tab, food_id, food_name, food_price, add_to_cart_callback)
         add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
 
-#create the movies/concession tabs on GUI
+
+def create_add_to_cart_button(tab, food_id, food_name, food_price, add_to_cart_callback):
+    button_width = 20
+    button_height = 2
+
+    def add_to_cart_wrapper():
+        add_to_cart_callback(food_id)
+
+    add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
+                           font=app_font, command=add_to_cart_wrapper)
+    return add_button
+
+# create the movies/concession tabs on GUI
 movies_tab = ttk.Frame(tabControl)
 create_movies_tab_content(movies_tab)
 foods_tab = ttk.Frame(tabControl)
 create_tab_content(foods_tab, 'Concessions', add_food_to_cart)
 
-
-#grid columns to have the same weight
+# grid columns to have the same weight
 number_of_columns = 5
 for i in range(number_of_columns):
     movies_tab.grid_columnconfigure(i, weight=1, uniform="group1")
     foods_tab.grid_columnconfigure(i, weight=1, uniform="group1")
 
-
-
-
-
-#add the tabs to the tab control
+# add the tabs to the tab control
 tabControl.add(movies_tab, text='Movies')
 tabControl.add(foods_tab, text='Foods')
 
-#pack the tab control into the main window
+# pack the tab control into the main window
 tabControl.pack(expand=1, fill="both")
 
 # Place the new buttons in the GUI for movie ratings
 ratings_frame = tk.Frame(root)
 ratings_frame.pack(fill='x', padx=5, pady=5)
+
 
 # Define the button for PG movies and its placement
 
@@ -253,11 +265,13 @@ def list_pg_movies():
     try:
         movies_collection = db['movies']
         pg_movies = movies_collection.find({'rating': 'PG'}, {'Name': 1})
-        #get movies from query
+        # get movies from query
         pg_movie_names = [movie['Name'] for movie in pg_movies]
         messagebox.showinfo("PG Movies", "\n".join(pg_movie_names))
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
+
+
 #####
 
 pg_button = tk.Button(ratings_frame, text="List PG", command=list_pg_movies)
@@ -283,46 +297,44 @@ total_value.grid(row=0, column=1, sticky="w")
 total_frame.pack_configure()
 
 
-
 # Function to update the total cost
 def update_total(cost):
     current_total = float(total_value.cget("text"))
     updated_total = current_total + float(cost)
     total_value.config(text=f"{updated_total:.2f}")
+
+
 def checkout():
-    from pymongo import MongoClient
+    try:
+        orders_collection = db['orders']
+        # get max existing order number
+        max_order_num = orders_collection.find_one(
+            sort=[("OrderNum", -1)])  # sort desc
+        if max_order_num:
+            order_num = max_order_num['OrderNum'] + 1
+        else:
+            order_num = 1
 
-    def checkout():
-        try:
-            orders_collection = db['orders']
-            #get max existing order number
-            max_order_num = orders_collection.find_one(
-                sort=[("OrderNum", -1)])  #sort desc
-            if max_order_num:
-                order_num = max_order_num['OrderNum'] + 1
-            else:
-                order_num = 1
+        # get items from receipt
+        order_items = receipt_text.get("1.0", tk.END).strip()
+        order_cost = total_value.cget("text")
 
-            #get items from receipt
-            order_items = receipt_text.get("1.0", tk.END).strip()
-            order_cost = total_value.cget("text")
+        # insert items into orders
+        order_data = {
+            "OrderNum": order_num,
+            "OrderItems": order_items,
+            "OrderCost": order_cost
+        }
+        orders_collection.insert_one(order_data)
 
-            #insert items into orders
-            order_data = {
-                "OrderNum": order_num,
-                "OrderItems": order_items,
-                "OrderCost": order_cost
-            }
-            orders_collection.insert_one(order_data)
+        tk.messagebox.showinfo("Checkout", "Order placed successfully!")
 
-            tk.messagebox.showinfo("Checkout", "Order placed successfully!")
+        # clear receipt/tot cost
+        receipt_text.delete("1.0", tk.END)
+        total_value.config(text="0.00")
 
-            #clear receipt/tot cost
-            receipt_text.delete("1.0", tk.END)
-            total_value.config(text="0.00")
-
-        except Exception as e:
-            print(f"An error occurred: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 
 checkout_button = tk.Button(root, text="Checkout", command=checkout)
