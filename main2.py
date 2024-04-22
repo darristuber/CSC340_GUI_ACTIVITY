@@ -125,7 +125,7 @@ def add_movie_to_cart(movie_index):
 def receipt_update(movie_name, ticket_type, ticket_price):
     item_index = None
     for i, line in enumerate(receipt_text.get("1.0", tk.END).split("\n")):
-        if f"{movie_name} {ticket_type} " in line:
+        if f"{movie_name} {ticket_type}" in line:
             item_index = i
             break
 
@@ -137,12 +137,16 @@ def receipt_update(movie_name, ticket_type, ticket_price):
         receipt_text.insert(f"{item_index + 1}.0", f"{quantity}x {movie_name} {ticket_type} - ${new_cost}")
     else:
         if receipt_text.get("1.0", tk.END).strip():
-            receipt_text.insert(tk.END, "\n")  # Add newline if it's not the first item
+            receipt_text.insert(tk.END, "\n")  # Add newline only if not the first item
         receipt_text.insert(tk.END, f"1x {movie_name} {ticket_type} - ${ticket_price}")
 
     receipt_text.configure(bg='gray', fg='white')
     update_total(ticket_price)
 
+
+def delete():
+    receipt_text.delete("1.0", tk.END)
+    update_total(0)  # Assuming update_total(0) will reset the total cost to 0
 
 def add_food_to_cart(food_index):
     try:
@@ -361,6 +365,9 @@ def checkout():
 # Place the checkout button in the top right of the total_frame
 checkout_button = tk.Button(total_frame, text="Checkout", command=checkout, font=app_font)
 checkout_button.grid(row=0, column=2, sticky='ne', padx=10, pady=10)
+
+remove_button = tk.Button(total_frame, text="Delete", command=delete, font=app_font)
+remove_button.grid(row=0, column=0, sticky='nw', padx=10, pady=10)
 
 # Configure the grid layout to push everything to the left
 total_frame.grid_columnconfigure(0, weight=1)
