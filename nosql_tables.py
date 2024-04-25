@@ -4,31 +4,56 @@ client = MongoClient('localhost', 27017)
 db = client['mongo_movies']
 if 'concessions' not in db.list_collection_names():
     concessions_data = [
-     {
-       "ItemID": 1,
-       "ItemName": "Popcorn",
-       "Cost": 5
-     },
-     {
-       "ItemID": 2,
-       "ItemName": "Drink",
-       "Cost": 3
-     },
-     {
-       "ItemID": 3,
-       "ItemName": "Pretzel",
-       "Cost": 4
-     },
-     {
-       "ItemID": 4,
-       "ItemName": "Nachos",
-       "Cost": 6
-     },
-     {
-       "ItemID": 5,
-       "ItemName": "Candy",
-       "Cost": 2
-     }
+        {
+            "ItemID": 1,
+            "ItemName": "Popcorn",
+            "Cost": 5
+        },
+        {
+            "ItemID": 2,
+            "ItemName": "Drink",
+            "Cost": 3
+        },
+        {
+            "ItemID": 3,
+            "ItemName": "Pretzel",
+            "Cost": 4
+        },
+        {
+            "ItemID": 4,
+            "ItemName": "Nachos",
+            "Cost": 6
+        },
+        {
+            "ItemID": 5,
+            "ItemName": "Candy",
+            "Cost": 2
+        },
+        {
+            "ItemID": 6,
+            "ItemName": "Pizza",
+            "Cost": 3
+        },
+        {
+            "ItemID": 7,
+            "ItemName": "Cookie",
+            "Cost": 2
+        },
+        {
+            "ItemID": 8,
+            "ItemName": "Fries",
+            "Cost": 3
+        },
+        {
+            "ItemID": 9,
+            "ItemName": "Hotdog",
+            "Cost": 3
+        },
+        {
+            "ItemID": 10,
+            "ItemName": "Slushie",
+            "Cost": 3
+        }
     ]
     concessions_collection = db['concessions']
     concessions_collection.insert_many(concessions_data)
@@ -176,4 +201,5 @@ db.drop_collection('showings')
 
 # Close the connection
 client.close()
+
 '''

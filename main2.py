@@ -54,6 +54,7 @@ def fetch_foods():
     try:
         concessions_collection = db['concessions']
         foods = list(concessions_collection.find())
+        print(foods)
         return foods
 
     except Exception as e:
@@ -191,22 +192,25 @@ def create_movies_tab_content(tab):
         movie_id = movie.get('movieID')  # Get movieID field
         movie_name = movie.get('Name')  # Get Name field
         movie_rating = movie.get('rating')  # Get Rating field
+        from PIL import Image, ImageTk, ImageFilter
 
-        # Load the banner image
         banner_path = f"{movie_id}.jpeg"
         banner_image = Image.open(banner_path)
-        banner_photo = ImageTk.PhotoImage(banner_image)
-        banner_label = tk.Label(tab, image=banner_photo, width=350, height=350)
+        resized_banner_image = banner_image.resize((370, 400))
+        banner_photo = ImageTk.PhotoImage(resized_banner_image)
+        banner_label = tk.Label(tab, image=banner_photo, width=400, height=400)
         banner_label.image = banner_photo  # keep a reference!
         banner_label.grid(column=i, row=0, padx=10, pady=10)
 
+
+
         # Create and place the movie name label below the banner image
-        movie_name_label = tk.Label(tab, text=movie_name, font=app_font, bg='white')
-        movie_name_label.grid(column=i, row=1, padx=10, pady=2)
+       # movie_name_label = tk.Label(tab, text=movie_name, font=app_font, bg='white')
+        #movie_name_label.grid(column=i, row=1, padx=10, pady=2)
 
         # Create and place the movie rating label below the movie name
-        movie_rating_label = tk.Label(tab, text=f"Rating: {movie_rating}", font=app_font, bg='white')
-        movie_rating_label.grid(column=i, row=2, padx=10, pady=2)
+        #movie_rating_label = tk.Label(tab, text=f"Rating: {movie_rating}", font=app_font, bg='white')
+        #movie_rating_label.grid(column=i, row=2, padx=10, pady=2)
 
         button_width = 20
         button_height = 3  # Height is typically set in text lines, not pixels.
@@ -220,14 +224,16 @@ def create_movies_tab_content(tab):
                                font=app_font, command=add_movie_to_cart_wrapper)
         add_button.grid(column=i, row=3, pady=5, sticky='ew', padx=10)
 
-def create_tab_content(tab, item_type, add_to_cart_callback):
+'''def create_tab_content(tab, item_type, add_to_cart_callback):
     foods = fetch_foods()
     for i, food in enumerate(foods):
         food_id, food_name, food_price = food['ItemID'], food['ItemName'], food['Cost']
         banner_path = f"{food_name}.jpeg"
         banner_image = Image.open(banner_path)
+        #resized_banner_image = banner_image.resize((400, 425))
+        #banner_photo = ImageTk.PhotoImage(resized_banner_image)
         banner_photo = ImageTk.PhotoImage(banner_image)
-        banner_label = tk.Label(tab, image=banner_photo, width=200, height=350)
+        banner_label = tk.Label(tab, image=banner_photo, width=400, height=370)
         banner_label.image = banner_photo
         banner_label.grid(column=i, row=0, padx=10, pady=10)
 
@@ -235,8 +241,40 @@ def create_tab_content(tab, item_type, add_to_cart_callback):
         label.grid(column=i, row=1, padx=10, pady=5, sticky="ew")
 
         add_button = create_add_to_cart_button(tab, food_id, food_name, food_price, add_to_cart_callback)
-        add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
+        add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)'''
+def create_tab_content(tab, item_type, add_to_cart_callback):
+    foods = fetch_foods()
+    for i, food in enumerate(foods):
+        row_index = i // 5  # Calculate the row index
+        col_index = i % 5   # Calculate the column index within the row
 
+        food_id, food_name, food_price = food['ItemID'], food['ItemName'], food['Cost']
+        banner_path = f"{food_name}.jpeg"
+        banner_image = Image.open(banner_path)
+        # Resize the image to match the desired size
+        banner_image = banner_image.resize((215, 200))
+        banner_photo = ImageTk.PhotoImage(banner_image)
+
+        # Create a frame to ensure consistent size
+        frame = tk.Frame(tab, width=215, height=200)
+        frame.grid_propagate(False)  # Prevent frame from shrinking
+        frame.grid(column=col_index, row=row_index, padx=10, pady=10)
+
+        # Create a label for the image inside the frame
+        banner_label = tk.Label(frame, image=banner_photo)
+        banner_label.image = banner_photo
+
+        # Bind the click event of the image to add the item to cart
+        banner_label.bind("<Button-1>", lambda event, food_id=food_id: add_to_cart_callback(food_id))
+        banner_label.pack(fill=tk.BOTH, expand=True)  # Fill the entire frame with the image
+
+        # Label for the item name
+        item_name_label = tk.Label(frame, text=f"{food_name} - ${food_price}", fg="black", bg="white")
+        item_name_label.pack(pady=5)
+
+        # Commenting out add to cart button creation
+        # add_button = create_add_to_cart_button(tab, food_id, food_name, food_price, add_to_cart_callback)
+        # add_button.grid(column=col_index, row=row_index + 2, pady=5, sticky='ew', padx=10)
 
 def create_add_to_cart_button(tab, food_id, food_name, food_price, add_to_cart_callback):
     button_width = 20
@@ -261,7 +299,9 @@ for i in range(number_of_columns):
     movies_tab.grid_columnconfigure(i, weight=1, uniform="group1")
     foods_tab.grid_columnconfigure(i, weight=1, uniform="group1")
 
-##add the tabs to the tab control
+style.configure('TNotebook.Tab', font=('Times', 24))
+
+# Add the tabs to the tab control
 tabControl.add(movies_tab, text='Movies')
 tabControl.add(foods_tab, text='Foods')
 
@@ -301,6 +341,13 @@ pg_button.pack(side='top', pady=5)
 
 #add_button = create_add_to_cart_button(tab, food_id, food_name, food_price, add_to_cart_callback)
 #add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)
+
+movie_background_image = Image.open("move_background.jpeg")
+movie_background_photo = ImageTk.PhotoImage(movie_background_image)
+movie_background_label = tk.Label(root, image=movie_background_photo)
+movie_background_label.image = movie_background_photo
+movie_background_label.pack(side="left", padx=10, pady=10)
+
 
 # Create the Receipt section
 receipt_label = tk.Label(root, text="Receipt:")
