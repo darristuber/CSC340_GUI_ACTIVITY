@@ -198,7 +198,7 @@ def create_movies_tab_content(tab):
         banner_image = Image.open(banner_path)
         resized_banner_image = banner_image.resize((370, 400))
         banner_photo = ImageTk.PhotoImage(resized_banner_image)
-        banner_label = tk.Label(tab, image=banner_photo, width=400, height=400)
+        banner_label = tk.Label(tab, image=banner_photo, width=400, height=380)
         banner_label.image = banner_photo  # keep a reference!
         banner_label.grid(column=i, row=0, padx=10, pady=10)
 
@@ -252,11 +252,11 @@ def create_tab_content(tab, item_type, add_to_cart_callback):
         banner_path = f"{food_name}.jpeg"
         banner_image = Image.open(banner_path)
         # Resize the image to match the desired size
-        banner_image = banner_image.resize((215, 200))
+        banner_image = banner_image.resize((215, 180))
         banner_photo = ImageTk.PhotoImage(banner_image)
 
         # Create a frame to ensure consistent size
-        frame = tk.Frame(tab, width=215, height=200)
+        frame = tk.Frame(tab, width=215, height=180)
         frame.grid_propagate(False)  # Prevent frame from shrinking
         frame.grid(column=col_index, row=row_index, padx=10, pady=10)
 
