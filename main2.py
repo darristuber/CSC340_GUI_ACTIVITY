@@ -15,7 +15,9 @@ root = tk.Tk()
 root.title("Movie Ticket Booking System")
 root.configure(bg='black')  # Set the background color to matte black
 root.state('zoomed')
-app_font = tkFont.Font(family='Helvetica', size=14, weight='bold')
+#font=('Times', 20)
+#app_font = tkFont.Font(family='Helvetica', size=14, weight='bold')
+app_font = tkFont.Font(family='Times', size=20, weight='bold')
 
 # formatting for buttons
 style = ttk.Style()
@@ -54,7 +56,6 @@ def fetch_foods():
     try:
         concessions_collection = db['concessions']
         foods = list(concessions_collection.find())
-        print(foods)
         return foods
 
     except Exception as e:
@@ -112,7 +113,7 @@ def add_movie_to_cart(movie_index):
 
                 receipt_update(movie_name, ticket_type, ticket_price)
 
-            add_button = tk.Button(popup, text="Add to Cart", command=add_to_cart_after_age)
+            add_button = tk.Button(popup, text="Add to Cart", font=('Times', 20), command=add_to_cart_after_age)
             add_button.pack()
 
         else:
@@ -147,7 +148,7 @@ def receipt_update(movie_name, ticket_type, ticket_price):
 
 def delete():
     receipt_text.delete("1.0", tk.END)
-    update_total(0)  # Assuming update_total(0) will reset the total cost to 0
+    total_value.config(text="0.00")
 
 def add_food_to_cart(food_index):
     try:
@@ -221,27 +222,10 @@ def create_movies_tab_content(tab):
 
         # Create and place the add to cart button below the movie rating label
         add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
-                               font=app_font, command=add_movie_to_cart_wrapper)
+                               font=('Times', 17), command=add_movie_to_cart_wrapper)
         add_button.grid(column=i, row=3, pady=5, sticky='ew', padx=10)
 
-'''def create_tab_content(tab, item_type, add_to_cart_callback):
-    foods = fetch_foods()
-    for i, food in enumerate(foods):
-        food_id, food_name, food_price = food['ItemID'], food['ItemName'], food['Cost']
-        banner_path = f"{food_name}.jpeg"
-        banner_image = Image.open(banner_path)
-        #resized_banner_image = banner_image.resize((400, 425))
-        #banner_photo = ImageTk.PhotoImage(resized_banner_image)
-        banner_photo = ImageTk.PhotoImage(banner_image)
-        banner_label = tk.Label(tab, image=banner_photo, width=400, height=370)
-        banner_label.image = banner_photo
-        banner_label.grid(column=i, row=0, padx=10, pady=10)
 
-        label = tk.Label(tab, text=f"{food_name} - ${food_price}", fg="black", bg="white")
-        label.grid(column=i, row=1, padx=10, pady=5, sticky="ew")
-
-        add_button = create_add_to_cart_button(tab, food_id, food_name, food_price, add_to_cart_callback)
-        add_button.grid(column=i, row=2, pady=5, sticky='ew', padx=10)'''
 def create_tab_content(tab, item_type, add_to_cart_callback):
     foods = fetch_foods()
     for i, food in enumerate(foods):
@@ -269,7 +253,7 @@ def create_tab_content(tab, item_type, add_to_cart_callback):
         banner_label.pack(fill=tk.BOTH, expand=True)  # Fill the entire frame with the image
 
         # Label for the item name
-        item_name_label = tk.Label(frame, text=f"{food_name} - ${food_price}", fg="black", bg="white")
+        item_name_label = tk.Label(frame, text=f"{food_name} - ${food_price}", font=('Times', 20), fg="black", bg="white")
         item_name_label.pack(pady=5)
 
         # Commenting out add to cart button creation
@@ -284,10 +268,10 @@ def create_add_to_cart_button(tab, food_id, food_name, food_price, add_to_cart_c
         add_to_cart_callback(food_id)
 
     add_button = tk.Button(tab, text="Add to Cart", width=button_width, height=button_height,
-                           font=app_font, command=add_to_cart_wrapper)
+                           font=('Times', 20), command=add_to_cart_wrapper)
     return add_button
 
-# create the movies/concession tabs on GUI
+#create the movies/concession tabs on GUI
 movies_tab = ttk.Frame(tabControl)
 create_movies_tab_content(movies_tab)
 foods_tab = ttk.Frame(tabControl)
@@ -350,9 +334,9 @@ movie_background_label.pack(side="left", padx=10, pady=10)
 
 
 # Create the Receipt section
-receipt_label = tk.Label(root, text="Receipt:")
+receipt_label = tk.Label(root, text="Receipt:", font=('Times',20))
 receipt_label.pack()
-receipt_text = tk.Text(root, height=10, width=70, font=app_font)
+receipt_text = tk.Text(root, height=10, width=70, font=('Times', 18))
 
 receipt_text.pack()
 
@@ -391,15 +375,18 @@ def checkout():
         order_items = receipt_text.get("1.0", tk.END).strip()
         order_cost = total_value.cget("text")
 
-        # insert items into orders
-        order_data = {
-            "OrderNum": order_num,
-            "OrderItems": order_items,
-            "OrderCost": order_cost
-        }
-        orders_collection.insert_one(order_data)
 
-        tk.messagebox.showinfo("Checkout", "Order placed successfully!")
+        if float(order_cost)== 0:
+            tk.messagebox.showinfo("Checkout", "Must add items to place order")
+        else:
+            # insert items into orders
+            order_data = {
+                "OrderNum": order_num,
+                "OrderItems": order_items,
+                "OrderCost": order_cost
+            }
+            orders_collection.insert_one(order_data)
+            tk.messagebox.showinfo("Checkout", "Order placed successfully!")
 
         # clear receipt/tot cost
         receipt_text.delete("1.0", tk.END)
@@ -413,7 +400,7 @@ def checkout():
 checkout_button = tk.Button(total_frame, text="Checkout", command=checkout, font=app_font)
 checkout_button.grid(row=0, column=2, sticky='ne', padx=10, pady=10)
 
-remove_button = tk.Button(total_frame, text="Delete", command=delete, font=app_font)
+remove_button = tk.Button(total_frame, text="Restart Order", command=delete, font=app_font)
 remove_button.grid(row=0, column=0, sticky='nw', padx=10, pady=10)
 
 # Configure the grid layout to push everything to the left
